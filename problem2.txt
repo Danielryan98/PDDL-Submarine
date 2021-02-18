@@ -1,0 +1,73 @@
+(define (problem unnamed-3)
+    (:domain unnamed)
+    
+    (:objects
+        bridge
+        launch-bay
+        science-lab
+        sick-bay
+        defence-bay
+        captain
+        navigator
+        sea-port
+        region1
+        region2
+        region3
+        engineer
+        engineer2
+        science-officer
+        security
+        missile-specialist
+    )
+    
+    (:init
+        (currentLocation sea-port)
+        (atSection bridge captain)
+        (atSection bridge navigator)
+        (atSection science-lab engineer)
+        (atSection science-lab engineer2)
+        (atSection science-lab science-officer)
+        (atSection bridge security)
+        (atSection defence-bay missile-specialist)
+        (doorBetween bridge launch-bay)
+        (doorBetween launch-bay bridge)
+        (doorBetween launch-bay science-lab)
+        (doorBetween science-lab launch-bay)
+        (doorBetween science-lab sick-bay)
+        (doorBetween sick-bay science-lab)
+        (doorBetween sick-bay defence-bay)
+        (doorBetween defence-bay sick-bay)
+        (enemySubInRegion region2)
+        (ridgeInRegion region1)
+        (dmsubInLaunchBay)
+        (abyssalPlainInRegion region2)
+        (emsubInLaunchBay)
+        (onSubmarine captain)
+        (onSubmarine navigator)
+        (onSubmarine engineer)
+        (onSubmarine engineer2)
+        (onSubmarine science-officer)
+        (onSubmarine security)
+        (onSubmarine missile-specialist)
+        (location sea-port)
+        (location region1)
+        (location region2)
+        (location region3)
+        (underwaterBaseOnPlainInRegion region2)
+        (underwaterBaseSafeInRegion region2)
+    )
+    
+    (:goal
+        (and
+            (mineralSamplesStudiedFrom region1)
+            (underwaterBaseMissionAccomplishedIn region2)
+            (submarineDestroyed)
+        )
+;This goal tests that mineral samples can only be moved around the submarine
+;by the science officer, it tests that the captain and engineer will go to
+;a safe underwater base as (underwaterBaseSafeInRegion region2) is
+;initialised, and it tests that the submarine will be destroyed by the enemy
+;submarine in region 2 because (experiencedMissileSpecialist) is not
+;initialised.
+    )
+)

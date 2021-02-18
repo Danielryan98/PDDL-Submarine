@@ -1,0 +1,1342 @@
+(define (domain unnamed)
+    (:requirements
+        :strips
+    )
+    
+    (:predicates
+        (atSection ?x ?y)
+        (onSubmarine ?y)
+        (currentLocation ?uwrx)
+        (travelOrderDestination ?uwry)
+        (navigatorHasOrder ?uwry)
+        (travelOrderPlaced)
+        (doorBetween ?x ?y)
+        (ridgeInRegion ?uwrx)
+        (dmsubInLaunchBay)
+        (dmsubActive)
+        (dmsubAtRidge)
+        (dmsubHasMineralSamples)
+        (mineralSamplesFromAt ?uwrx ?x)
+        (abyssalPlainInRegion ?uwrx)
+        (emsubInLaunchBay)
+        (inEmsub ?y)
+        (emsubOnPlain)
+        (underwaterSensorNetDeployedIn ?uwrx)
+        (underwaterSensorsReady)
+        (location ?uwrx)
+        (underwaterBaseOnPlainInRegion ?uwrx)
+        (securityToAccomponyExpSubIn ?uwrx)
+        (securityReady)
+        (emsubMakingApproachOnUnderwaterBase)
+        (emsubAtUnderwaterBase)
+        (injured ?y)
+        (atUnderwaterBase ?y)
+        (underwaterBaseSafeInRegion ?uwrx)
+        (noSecurity)
+        (meetingWithLeaders)
+        (metBaseLeadersIn ?uwrx)
+        (underwaterBaseMissionAccomplishedIn ?uwrx)
+        (mineralSamplesStudiedFrom ?uwrx)
+        (vortexInRegion ?uwrx)
+        (vortexScannedIn ?uwrx)
+        (enterVortexOrdered)
+        (pressureShieldsToBeActivatedIn ?uwrx)
+        (pressureShieldsActivated)
+        (vortexGoesToFrom ?uwry ?uwrx)
+        (traveledThroughVortexIn ?uwrx)
+        (submarineDestroyed)
+        (missionComplete)
+        (enemySubInRegion ?uwrx)
+        (experiencedMissileSpecialist)
+        (enemyDefeated)
+        (missileSpecialistHasOrder)
+        (submarineUnderAttack)
+        (navigatorHasOrderToFlee)
+        (avoidedEnemySubIn ?uwrx)
+    )
+    
+(:action cpt_orders_submarine_to_travel_to_from
+    :parameters
+        (?uwry ?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (location ?uwry)
+            (not(travelOrderPlaced))
+            (atSection bridge captain)
+            (atSection bridge navigator)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+            (not(enterVortexOrdered))
+        )
+    :effect
+        (and
+            (navigatorHasOrder ?uwry)
+            (travelOrderPlaced)
+        )
+;parameters passed through are ?uwry which is the location the captain is
+;ordering the submarine to travel to, and ?uwrx which is the submarines current
+;location. For this action to take place, the submarine mustn't have been
+;destroyed because if the submarine is destroyed we don't want it to do anything
+;, there can't already be a travel order placed otherwise it would need to be
+;carried out before the captain can make another order to move the submarine,
+;the captain and navigator must both be at the bridge of the submarine, the 
+;submarine mustn't be under attack, the submaine mustn't be ready to attack, 
+;and the submarine cannot be about to enter a vortex. As an effect of this 
+;action the predicate (navigatorHasOrder ?uwry) will update ?uwry to the goal
+;destination, and the predicate (travelOrderPlaced) will become true.
+)
+
+(:action submarine_travels_to_from
+    :parameters
+        (?uwry ?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (atSection bridge navigator)
+            (navigatorHasOrder ?uwry)
+            (travelOrderPlaced)
+            (dmsubInLaunchBay)
+            (emsubInLaunchBay)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+            (not(enterVortexOrdered))
+        )
+    :effect
+        (and
+            (currentLocation ?uwry)
+            (not(currentLocation ?uwrx))
+            (not(navigatorHasOrder ?uwry))
+            (not(travelOrderPlaced))
+        )
+;parameters passed through are ?uwry which is the location the submaine is
+;travelling to, and ?uwrx which is the submarines current
+;location. For this action to take place, the submarine mustn't have been
+;destroyed, the navigator must have the order from the captain to travel to
+;the goal destination ?uwry, the navigator must be at the bridge to guide the
+;submarine, the predicate (travelOrderPlaced) must be true which is made true
+;by the action of the captain putting in the order to travel to the goal
+;destination, the drilling mini sub and exploration mini sub must both be in
+;the launch bay and not out on missions, the submarine mustn't be under attack,
+;the submaine mustn't be ready to attack, and the submarine cannot be about to 
+;enter a vortex. As a result of this action, the current location of the sub 
+;will become what was the goal location ?uwry, the current location of the sub
+;will no longer be the previous location ?uwrx, the predicate
+;(navigatorHasOrder ?uwry) will become false with the use of (not) so that the
+;captain can put in new orders to travel elsewhere, and the predicate
+;(travelOrderPlaced) will become false so there are no probelms when ordering
+;the submarine to travel somewhere else.
+)
+
+(:action move_person_to_from
+    :parameters
+        (?y ?x ?s)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (atSection ?s ?y)
+            (doorBetween ?s ?x)
+            (onSubmarine ?y)
+        )
+    :effect
+        (and
+            (atSection ?x ?y)
+            (not(atSection ?s ?y))
+        )
+;parameters are: '?y' which is the person to move, '?x' which is the section of
+;the submarine this person is to travel to, '?s' which is the section of the
+;submarine that the person is currently at. Preconditions of this action are
+;that the submarine is not destroyed, the person '?y' must be at the current 
+;section '?s', and there must be a door between their current section ?s and 
+;their desired section '?x', if there isn't a door between their current section
+;and their desired section then they will have to go to another section, maybe
+;to multiple different sections to get to a section that has a door that leads
+;to their desired section. As a result of this action, the person is now at the
+;new section '?x' and is no longer at the previous section '?s'.
+)
+
+(:action launch_drilling_mini_sub_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (ridgeInRegion ?uwrx)
+            (atSection launch-bay engineer)
+            (dmsubInLaunchBay)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (not(dmsubInLaunchBay))
+            (dmsubActive)
+        )
+;parameter passed through is the underwater region the submarine is in currently
+;as this will be needed to determine whether or not there is a ridge to be
+;drilled. The preconditions of this action are that the submarine is not
+;destroyed, there is a ridge in the current underwater region '?uwrx', in the 
+;launch bay section of the submarine there is an engineer, and that the 
+;drilling mini-sub is in the launch bay and not deployed already, the submarine
+;mustn't be under attack and it mustn't be ready to attack.
+;As a result of this action the drilling mini-sub will no longer be in the 
+;launch bay and predicate dmsubActive will become true to register that the
+;drilling mini-sub is now detatched from the submarine and ready to approach
+;the ridge.
+)
+
+(:action drilling_mini_sub_approaches_ridge_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (currentLocation ?uwrx)
+            (not(submarineDestroyed))
+            (dmsubActive)
+        )
+    :effect
+        (and
+            (dmsubAtRidge)
+        )
+;For this action the current location is passed through for the sake of
+;prettiness when the plan is produced. As a precondition the submarine mustn't
+;be destroyed and the drilling mini sub must be active, the predicate 
+;(dmsubActive) is enabled as an effect of the drilling mini sub being launched.
+;As a result of this action, the drilling mini sub is classified as being at
+;the ridge it is to mine.
+
+)
+
+(:action drilling_mini_sub_drills_for_mineral_samples_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (currentLocation ?uwrx)
+            (not(submarineDestroyed))
+            (dmsubActive)
+            (dmsubAtRidge)
+        )
+    :effect
+        (and
+            (dmsubHasMineralSamples)
+        )
+;This action also does not require any parameters but takes the current
+;location as one for the plans sake. As a precondition the
+;sub mustn't be destroyed, the drilling mini sub must be active, and the
+;drilling mini sub must be at the ridge, which is achieved with the action 
+;drilling_mini_sub_approaches_ridge_in. As a result of this action taking
+;place, the predicate (dmsubHasMineralSamples) is set to true to signify that
+;the ridge has been mined.
+)
+
+(:action drilling_mini_sub_unnaproaches_ridge_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (dmsubHasMineralSamples)
+            (currentLocation ?uwrx)
+            (not(submarineDestroyed))
+            (dmsubActive)
+            (dmsubAtRidge)
+        )
+    :effect
+        (and
+            (not(dmsubAtRidge))
+        )
+;This action takes the current location as a parameter. As a precondition
+;the drilling mini sub must have mined the minerals from the ridge,
+;the submarine cannot be destroyed, the drilling mini sub must be active, and
+;the drilling mini sub must be at a ridge, otherwise, the drilling mini sub 
+;could potentially unnaproach a ridge when it's not actually at one. As a
+;result of this action, the drilling mini sub is no longer at the ridge,
+;which is indicated by setting the predicate (dmsubAtRidge) to false.
+)
+
+(:action drilling_mini_sub_returns_to_submarine_with_samples_from
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (dmsubHasMineralSamples)
+            (dmsubActive)
+            (not(dmsubAtRidge))
+            (atSection launch-bay engineer)
+        )
+    :effect
+        (and
+            (not(dmsubActive))
+            (dmsubInLaunchBay)
+            (not(dmsubHasMineralSamples))
+            (mineralSamplesFromAt ?uwrx launch-bay)
+        )
+;This action takes the submarines current location as a parameter, and as a
+;precondition, the submarine cannot be destroyed, the drilling mini sub must
+;have mined the minerals from the ridge it was at, the drilling mini sub must
+;be active, so that there is a mini sub to actually return to the submarine,
+;the drilling mini sub can no longer be at the ridge, and an engineer must be
+;at the launch bay to retrieve the mini sub. As a result of this action, the
+;predicate (dmsubActive) will be set to false, (dmsubInLaunchBay) becomes true
+;so that another mission could be launched elsewhere, the predicate
+;(dmsubHasMineralSamples) becomes false as they are transfered onto the main
+;submarine, and then finally to say that the mineral samples are at the
+;launch bay I have used the predicate (mineralSamplesFromAt ?uwrx launch-bay)
+;to say that the mineral samples from the location they were mined at are at
+; section launch-bay.
+)
+
+(:action move_mineral_samples_from_region_to_section_from_section
+    :parameters
+        (?uwrx ?x ?s)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (mineralSamplesFromAt ?uwrx ?s)
+            (atSection ?s science-officer)
+        )
+    :effect
+        (and
+            (not(atSection ?s science-officer))
+            (not(mineralSamplesFromAt ?uwrx ?s))
+            (mineralSamplesFromAt ?uwrx ?x)
+            (atSection ?x science-officer)
+        )
+;This action has 3 parameters, ?uwrx which is the location that the mineral
+;samples were mined in, ?x which is the section of the submarine that the 
+;minerals are getting moved to, and ?s which is the section of the submarine
+;the minerals are being moved from. As a precondition this action requires that
+;the submarine has not been destroyed, the mineral samples from the location
+;they were mined from and their current whereabouts on the submarine ?s, and
+;that their is a science officer at the same section of the ship that the
+;minerals are at, so as to transport them to another section as the science
+;officer is the only person who can. As a result of this action, the mineral
+;samples and science officer will no longer be at the section ?s, and will now
+;be at a different section of the submarine ?x.
+)
+
+(:action set_up_exploration_mini_sub_sensor_devices
+    :parameters
+        ()
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (atSection launch-bay engineer)
+            (emsubInLaunchBay)
+        )
+    :effect
+        (and
+            (underwaterSensorsReady)
+        )
+;This action can be performed as long as the submarine has not been destroyed,
+;there is an engineer in the launch bay to carry out the action, and that the
+;exploration mini sub is in the launch bay as that is the object being worked
+;on. As a result of this action, the predicate (underwaterSensorsReady) will
+;become true, to signify that the engineer has set up the sesors.
+)
+
+(:action launch_exploration_mini_sub_to_abyssal_plain_to_install_sensors_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (abyssalPlainInRegion ?uwrx)
+            (atSection launch-bay engineer)
+            (emsubInLaunchBay)
+            (underwaterSensorsReady)
+            (atSection launch-bay engineer2)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (not(emsubInLaunchBay))
+            (not(atSection launch-bay engineer))
+            (not(onSubmarine engineer))
+            (inEmsub engineer)
+        )
+;This action takes through the current location as a parameter. To carry out
+;this action the submarine cannot be destroyed, their must be an abyssal plain 
+;in the current location ?uwrx, an engineer must be at the launch bay, a second
+;engineer must be at the launch bay, the exploration mini sub must be at the
+;launch bay, the underwater sensors must be ready with the predicate
+;(underwaterSensorsReady) made true by carrying out the action 
+;set_up_exploration_mini_sub_sensor_devices, the submarine can't be under
+;attack, and the submarine cannot be about to attack. As a result of this
+;action, the exploration mini sub will no longer be in the launch bay, neither
+;will the engineer, the engineer will now be in the exploration mini sub, and
+;the predicate (onSubmarine engineer) will become false to signify that the
+;engineer is no longer on the main sub and is elsewhere.
+)
+
+(:action land_exploration_mini_sub_on_plain
+    :parameters
+        ()
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (not(emsubInLaunchBay))
+        )
+    :effect
+        (and
+            (emsubOnPlain)
+        )
+;This action requires no parameters, it has two preconditions and they are that
+;the submarine is not destroyed and that the exploration mini sub is not
+;in the launch-bay. As a result of this action, the exploration mini sub
+;is on the plain with predicate (emsubOnPlain) set to true.
+)
+
+(:action deploy_underwater_sensor_net_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (emsubOnPlain)
+            (underwaterSensorsReady)
+        )
+    :effect
+        (and
+            (underwaterSensorNetDeployedIn ?uwrx)
+            (not(underwaterSensorsReady))
+        )
+;This action takes the current location through as a parameter. As a
+;precondition the submmarine cannot be destroyed, the exploration mini sub 
+;must be on the plain, and the underwater sensors must be ready to be
+;deployed. As a result of this action the underwater sensor nets are deployed
+;with ?uwrx indicating which region they are deployed in, and the predicate
+;(underwaterSensorsReady) is set to false, so that the sensors can be set up
+;again for another mission when the exploration mini sub returns.
+)
+
+
+(:action expmini_sub_and_engineer_return_to_submarine_mission_accomplished_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (underwaterSensorNetDeployedIn ?uwrx)
+            (atSection launch-bay engineer2)
+        )
+    :effect
+        (and
+            (not(emsubOnPlain))
+            (emsubInLaunchBay)
+            (not(inEmsub engineer))
+            (onSubmarine engineer)
+            (atSection launch-bay engineer)
+        )
+;This action takes the current location through as a parameter. As a
+;precondition to this action taking place, the submarine cannot be destroyed,
+;the underwater sensors must be deployed on the plain in the region, and
+;there must be an engineer at the launch bay. As a result of this action
+;the exploration mini sub is no longer on the abyssal plain, the
+;exploration mini sub is now in the launch bay, the engineer is not longer in 
+;the mini sub and is back on the submarine and in the launch bay section of the
+;submarine.
+)
+
+(:action security_personnel_ready_to_accompony_expsub_to_underwaterbase_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (abyssalPlainInRegion ?uwrx)
+            (underwaterBaseOnPlainInRegion ?uwrx)
+            (securityToAccomponyExpSubIn ?uwrx)
+        )
+    :effect
+        (and
+            (securityReady)
+        )
+;This action takes the current location through as a parameter. As a
+;precondition the submarine mustn't be destroyed, their must be an abyssal
+;plain in the current location, their must be an underwater base on that
+;abyssal plain, and their must be security accomponying the exploration sub
+;in this region, which is decided in the problem file.
+;As a result of this action, the predicate (securityReady) is set to true.
+)
+
+(:action launch_exploration_mini_sub_to_check_underwater_base_with_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (abyssalPlainInRegion ?uwrx)
+            (underwaterBaseOnPlainInRegion ?uwrx)
+            (emsubInLaunchBay)
+            (atSection launch-bay engineer)
+            (atSection launch-bay captain)
+            (atSection launch-bay security)
+            (securityReady)
+            (atSection launch-bay engineer2)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (not(emsubInLaunchBay))
+            (not(atSection launch-bay engineer))
+            (not(atSection launch-bay captain))
+            (not(atSection launch-bay security))
+            (not(onSubmarine engineer))
+            (not(onSubmarine captain))
+            (not(onSubmarine security))
+            (inEmsub engineer)
+            (inEmsub captain)
+            (inEmsub security)
+            (not(securityReady))
+        )
+;This action takes the current location ?uwrx in as a parameter, and as a
+;precondition this action needs the submarine to not be destroyed, there needs
+;to be an abyssal plain in the current location, there needs to be an
+;underwater base in the current location, the exploration mini sub needs to be
+;in the launch bay. The captain, security and engineer all need to be at the
+;launch bay, along with a second engineer to use the launch controls, the
+;predicate (securityReady) needs to be true, which is set as so when the action
+;security_personnel_ready_to_accompony_expsub_to_underwaterbase_in is carried 
+;out, the submarine cannot be under attack, and the submarine cannot be about
+;to attack. As a result of this action taking place, the exploration mini sub
+;will no longer be in the launch bay, the engineer, captain, and security will
+;all no longer be at the launch bay section and will all no longer be on the
+;submarine, and the captain, the engineer, and the security will all be on
+;the exploartion mini sub. The predicate (securityReady) will be set to false
+;so that no issues arise when launching a seperate mission.
+)
+
+(:action launch_exploration_mini_sub_to_check_underwater_base_without_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (abyssalPlainInRegion ?uwrx)
+            (underwaterBaseOnPlainInRegion ?uwrx)
+            (emsubInLaunchBay)
+            (atSection launch-bay engineer)
+            (atSection launch-bay captain)
+            (not(securityToAccomponyExpSubIn ?uwrx))
+            (atSection launch-bay engineer2)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (not(emsubInLaunchBay))
+            (not(atSection launch-bay engineer))
+            (not(atSection launch-bay captain))
+            (not(onSubmarine engineer))
+            (not(onSubmarine captain))
+            (inEmsub engineer)
+            (inEmsub captain)
+            (noSecurity)
+        )
+;This action takes in the current location as a parameter. As a precondition
+;to this action being carried out, the submarine cannot be destroyed, there must
+;be an abyssal plain in the current location, there must be an underwater base
+;in the current location which is decided in the problem file, the exploration
+;mini sub must be in the launch bay, the engineer and captain must both be at
+;the launch bay section of the submarine along with a second engineer to take
+;control of the launch controls, (securityToAccomponyExpSubIn ?uwrx) mustn't be
+;true, as this action is for launching a mini sub without security. The
+;submarine cannot be under attack and it can't be about to attack. As a result
+;of this action the exploration mini sub will no longer be in the launch bay,
+;the engineer and captain will no longer be at the launch bay or on the
+;submarine, both the captain and engineer will be in the exploaration mini sub
+;and the predicate (noSecurity) will become true to indicate that the
+;personnel have gone on the mission without security, this will come into
+;play when entering the underwater base if it has been taken over by
+;atlanteans.
+)
+
+(:action exploration_mini_sub_approach_underwater_base_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (abyssalPlainInRegion ?uwrx)
+            (underwaterBaseOnPlainInRegion ?uwrx)
+            (not(emsubInLaunchBay))
+            (inEmsub captain)
+        )
+    :effect
+        (and
+            (emsubMakingApproachOnUnderwaterBase)
+        )
+;This action takes the current location in as a parameter. The preconditions
+;to this action being performed are that the submarine is not destroyed, there's
+;an abyssal plain in the current location, there is an underwater base in the
+;current location, the exploration mini sub is not in the launch bay, and the
+;captain is in the exploration mini sub. As a result of this action being
+;carried out, the predicated (emsubMakingApproachOnUnderwaterBase) will become
+;true to signify that the exploration mini sub is approaching the underwater 
+;base.
+)
+
+(:action exploration_mini_sub_dock_on_underwater_base_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (abyssalPlainInRegion ?uwrx)
+            (underwaterBaseOnPlainInRegion ?uwrx)
+            (not(emsubInLaunchBay))
+            (inEmsub captain)
+            (emsubMakingApproachOnUnderwaterBase)
+        )
+    :effect
+        (and
+            (emsubAtUnderwaterBase)
+            (not(emsubMakingApproachOnUnderwaterBase))
+        )
+;This action takes in the current location as a parameter. For this action to
+;be performed, the submarine mustn't be destroyed, there must be an abyssal
+;plain in the current location, there must be an underwaterbase in the current
+;location, the exploration mini sub must not be in the launch bay as it would
+;not be able to dock if it was, the captain must be in the exploration mini
+;sub, and the predicate (emsubMakingApproachOnUnderwaterBase) must be true -
+;done so by the previous action. As a result of this action, the exploration
+;mini sub is set to being at the underwater base with predicate
+;(emsubAtUnderwaterBase) and (emsubMakingApproachOnUnderwaterBase) is set to
+;false as the exploration mini sub is no longer approaching the base - it has
+;arrived.
+)
+
+(:action personnel_enter_safe_underwaterbase_with_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (underwaterBaseSafeInRegion ?uwrx)
+            (securityToAccomponyExpSubIn ?uwrx)
+            (emsubAtUnderwaterBase)
+        )
+    :effect
+        (and
+            (not(inEmsub captain))
+            (not(inEmsub engineer))
+            (not(inEmsub security))
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+            (atUnderwaterBase security)
+        )
+;This action takes the current location as a parameter, and as a precondition to
+;this action being carried out the submarine cannot be destroyed, the
+;underwater base in the location must be safe - this is decided in the problem
+;file. The predicate (securityToAccomponyExpSubIn ?uwrx) must be true for this
+;location as this action involves going into the base with security so that
+;the captain is safe. The exploration mini sub must also be at the underwater
+;base, this is to prevent problems arising when making a plan. As a result of
+;this action taking place, the captain, engineer, and security are no longer
+;in the exploration mini sub, and instead are at the underwater base made true
+;with predicate (atUnderwaterBase ?y).
+)
+
+(:action personnel_enter_safe_underwaterbase_without_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (underwaterBaseSafeInRegion ?uwrx)
+            (emsubAtUnderwaterBase)
+            (noSecurity)
+        )
+    :effect
+        (and
+            (not(inEmsub captain))
+            (not(inEmsub engineer))
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the underwater base in the
+;current location must be safe - decided in the problem file. The exploration
+;mini sub must also be at the underwater base and the predicate (noSecurity)
+;must be true. As a result of this action, the captain and engineer will no
+;longer be in the exploration mini sub, and both will be at the underwater base.
+)
+
+(:action personnel_enter_atlantean_underwaterbase_with_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (not(underwaterBaseSafeInRegion ?uwrx))
+            (securityToAccomponyExpSubIn ?uwrx)
+            (emsubAtUnderwaterBase)
+        )
+    :effect
+        (and
+            (not(inEmsub captain))
+            (not(inEmsub engineer))
+            (not(inEmsub security))
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+            (atUnderwaterBase security)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the underwater base cannot
+;be safe in the current location, the scurity must be accomponying the
+;exploration mini sub in the current location and the exploration mini sub
+;must be at the underwater base. As a result of this action being carried out
+;the captain, engineer and security are no longer in the exploration mini sub
+;and are instead at the underwater base.
+)
+
+(:action personnel_enter_atlantean_underwaterbase_without_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (not(underwaterBaseSafeInRegion ?uwrx))
+            (emsubAtUnderwaterBase)
+            (noSecurity)
+        )
+    :effect
+        (and
+            (not(inEmsub captain))
+            (not(inEmsub engineer))
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+            (injured captain)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the underwater base at the
+;location cannot be safe, the exploration mini sub must be at the underwater
+;base, and there mustn't be secuirity on the mission. As a result of this
+;action being carried out, the captain and engineer will no longer be in the
+;exploration mini sub, and instead will both be at the underwater base, but
+;because there is no security with them when entering the base, on this
+;occasion the captain will be injured as the base has been taken over
+;as (underwaterBaseSafeInRegion ?uwrx) is false in the preconditions. The
+;captain being injured is registered with the predicare (injured ?y).
+)
+
+(:action security_accompony_captain_to_meet_with_underwaterbase_leaders_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (not(underwaterBaseSafeInRegion ?uwrx))
+            (securityToAccomponyExpSubIn ?uwrx)
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+            (atUnderwaterBase security)
+        )
+    :effect
+        (and
+            (meetingWithLeaders)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the underwaterbase in the
+;current location can't be safe, there must be security present, and the
+;captain, engineer and security must all be at the underwater base. As a
+;result of this action the predicate (meetingWithLeaders) is set to true, to
+;signify that the captain is going to meet with the underwater base leaders.
+)
+
+(:action captain_going_to_meet_with_underwaterbase_leaders_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+        )
+    :effect
+        (and
+            (meetingWithLeaders)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the captain and engineer
+;must both be at the underwater base, and the security mustn't be at the
+;base, this is to prevent this action being carried out when there is security
+;present. As a result of this action the predicate (meetingWithLeaders) is set
+;to true.
+)
+
+(:action captain_meets_with_underwaterbase_leaders_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (meetingWithLeaders)
+        )
+    :effect
+        (and
+            (metBaseLeadersIn ?uwrx)
+            (not(meetingWithLeaders))
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the predicate
+;(meetingWithLeaders) must be true, and as a result of this action taking
+;place, the captain has met the base leaders and so predicate
+;(metBaseLeadersIn ?uwrx) becomes true, and (meetingWithLeaders) becomes false
+;as the captain has met them now.
+)
+
+(:action captain_and_engineer_leave_underwaterbase_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (metBaseLeadersIn ?uwrx)
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+            (noSecurity)
+        )
+    :effect
+        (and
+            (not(atUnderwaterBase captain))
+            (not(atUnderwaterBase engineer))
+            (inEmsub captain)
+            (inEmsub engineer)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the base leaders must have
+;been met, which is done so with the previous action, the captain and engineer
+;must both be at the underwater base, and there mustn't be security with them.
+;As a result of this action taking place the captain and engineer will no longer
+;be at the underwater base and will instead be in the exploration mini sub.
+)
+
+(:action personnel_leave_underwaterbase_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (metBaseLeadersIn ?uwrx)
+            (atUnderwaterBase security)
+            (atUnderwaterBase captain)
+            (atUnderwaterBase engineer)
+        )
+    :effect
+        (and
+            (not(atUnderwaterBase security))
+            (not(atUnderwaterBase captain))
+            (not(atUnderwaterBase engineer))
+            (inEmsub security)
+            (inEmsub captain)
+            (inEmsub engineer)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the base leaders at the
+;current location must have been met, and the captain, security and engineer
+;must all be at the underwater base. As a result of this action the security,
+;captain and engineer will not longer be at the underwater base and will instead
+;be in the exploration mini sub.
+)
+
+(:action exploration_mini_sub_returns_from_underwater_base_with_security_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (metBaseLeadersIn ?uwrx)
+            (inEmsub security)
+            (inEmsub captain)
+            (inEmsub engineer)
+            (emsubAtUnderwaterBase)
+            (atSection launch-bay engineer2)
+        )
+    :effect
+        (and
+            (not(atUnderwaterBase security))
+            (not(atUnderwaterBase captain))
+            (not(atUnderwaterBase engineer))
+            (not(inEmsub security))
+            (not(inEmsub captain))
+            (not(inEmsub engineer))
+            (not(emsubAtUnderwaterBase))
+            (emsubInLaunchBay)
+            (onSubmarine captain)
+            (onSubmarine engineer)
+            (onSubmarine security)
+            (atSection launch-bay captain)
+            (atSection launch-bay engineer)
+            (atSection launch-bay security)
+            (underwaterBaseMissionAccomplishedIn ?uwrx)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the base leaders at the
+;current location must have been met, the captain, engineer and security must
+;all be in the exploration mini sub, the eexploration mini sub must be at the
+;underwater base, and there must be a an engineer at the launch bay of the main
+;submarine. As a result of this action taking place, the security, captain and
+;engineer will all no longer be at the underwater base, they will no longer be
+;in the exploration mini sub, and the mini sub will no longer be at the
+;underwater base. The exploration mini sub will now be in the launch bay of the
+;main submarine, the captain, engineer and security will all be on the submarine
+;and they will all be at the launch bay section of the submarine. The
+;predicate (underwaterBaseMissionAccomplishedIn ?uwrx) will become true and this
+;will be used when returning to sea port to complete the entire mission.
+)
+
+(:action exploration_mini_sub_returns_from_underwater_base_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (metBaseLeadersIn ?uwrx)
+            (inEmsub captain)
+            (inEmsub engineer)
+            (not(inEmsub security))
+            (emsubAtUnderwaterBase)
+            (atSection launch-bay engineer2)
+        )
+    :effect
+        (and
+            (not(atUnderwaterBase captain))
+            (not(atUnderwaterBase engineer))
+            (not(inEmsub captain))
+            (not(inEmsub engineer))
+            (not(emsubAtUnderwaterBase))
+            (emsubInLaunchBay)
+            (onSubmarine captain)
+            (onSubmarine engineer)
+            (atSection launch-bay captain)
+            (atSection launch-bay engineer)
+            (underwaterBaseMissionAccomplishedIn ?uwrx)
+        )
+;This action takes the current location as a parameter. For this action to be
+;carried out the submarine cant have been destroyed, the base leaders at the
+;current location must have been met, the captain and engineer must be in the
+;exploration mini sub, the security mustn't be with them, the exploration
+;mini sub must be at the underwater base, and there must be an engineer at
+;the launch bay section of the submarine, in this case engineer2. As a result of
+;this action, the captain and engineer will no longer be at the underwater base,
+;they will no longer be in the exploration mini sub, and the exploration mini
+;sub will no longer be at the underwater base. Instead, the exploration mini
+;sub will be in the launch bay of the submarine, the captain and engineer will
+;both be on the submarine, and they will both be at the launch bay section of
+;the submarine. The predicate (underwaterBaseMissionAccomplishedIn ?uwrx) will
+;be set to true to be used when returning to seaport to complete the entire
+;mission.
+)
+
+(:action heal_injured_personnel
+    :parameters
+        (?y)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (atSection sick-bay ?y)
+            (injured ?y)
+        )
+    :effect
+        (and
+            (not(injured ?y))
+        )
+;This action takes in one parameter ?y which will be a person. A precondition
+;to this action being carried out is that the submarine is not destroyed,
+;the person ?y is at the sickbay, and the person ?y is injured. As a result of
+;this action being carried out, the person will no longer be injured as the
+;predicate (injured ?y) for that person will be made false.
+)
+
+(:action study_mineral_samples_from
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (atSection science-lab science-officer)
+            (mineralSamplesFromAt ?uwrx science-lab)
+            (not(mineralSamplesStudiedFrom ?uwrx))
+        )
+    :effect
+        (and
+            (mineralSamplesStudiedFrom ?uwrx)
+        )
+;This action takes in one parameter and that is the location at which mineral
+;samples were mined ?uwrx. The preconditions to this action are that the
+;submarine is not destroyed, a science officer is at the science lab section of
+;the submarine, and the mineral samples from the location ?uwrx are at the
+;science lab section of the submarine. The mineral samples must also not have
+;already been studied. As a result of this action, the mineral samples will
+;have been studied, signified by the predicate (mineralSamplesStudiedFrom ?uwrx)
+)
+
+(:action science_officer_performs_vortex_scan_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (vortexInRegion ?uwrx)
+            (atSection science-lab science-officer)
+        )
+    :effect
+        (and
+            (vortexScannedIn ?uwrx)
+        )
+;This action takes one parameter and that is the current location of the
+;submarine. As a precondition to this action the submarine cannot be destroyed,
+;there must be a vortex in the current location and there must be a science
+;officer at the science lab section of the submarine. As a result of this
+;action, the vortex will have been scanned, signified by the predicate
+;(vvortexScannedIn ?uwrx) becoming true.
+)
+
+(:action cpt_orders_submarine_to_travel_into_vortex
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (vortexInRegion ?uwrx)
+            (not(travelOrderPlaced))
+            (atSection bridge captain)
+            (atSection bridge navigator)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (enterVortexOrdered)
+        )
+;This action takes in one parameter and that is the current location, this is
+;used to dictate whether or not there is a vortex in the region. The
+;preconditions of this action are that the submarine is not destroyed, there is
+;a vortex in the region, there isn't a travel order placed - otherwise if the
+;submarine travels somewhere it'll be able to use the vortex without being
+;in the same place as the vortex. The captain and navigator must both be at the
+;bridge, and the submarine cannot be under attack, neither can it be about to
+;attack. As a result of this action, the predicate (enterVortexOrdered)
+;becomes true, as the submarine has been instructed to go into the vortex by the
+;captain.
+)
+
+(:action engineer_activates_pressure_shields_to_enter_vortex_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (pressureShieldsToBeActivatedIn ?uwrx)
+            (not(travelOrderPlaced))
+            (atSection bridge engineer2)
+        )
+    :effect
+        (and
+            (pressureShieldsActivated)
+        )
+;This action takes in current location as a parameter to see whether pressure
+;shields are to be activated here - decided in the problem file. The
+;precondition of this action is that the submarine is not destroyed, the 
+;pressure shields are to be activated in this location, there isn't a travel
+;order placed, and the second engineer is at the bridge. As a result of this
+;action taking place, the pressure shields of the submarine will have been 
+;activated indicated by the predicate (pressureShieldsActivated) becoming true.
+)
+
+(:action submarine_enters_vortex_with_shields_and_is_taken_to_from
+    :parameters
+        (?uwry ?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (pressureShieldsActivated)
+            (enterVortexOrdered)
+            (currentLocation ?uwrx)
+            (vortexInRegion ?uwrx)
+            (vortexGoesToFrom ?uwry ?uwrx)
+            (dmsubInLaunchBay)
+            (emsubInLaunchBay)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (not(currentLocation ?uwrx))
+            (currentLocation ?uwry)
+            (not(pressureShieldsActivated))
+            (not(enterVortexOrdered))
+            (traveledThroughVortexIn ?uwrx)
+        )
+;This action takes in two parameters the location that the submarine will be
+;taken to by the vortex ?uwry and the current location ?uwrx in which the
+;vortex is at. The preconditions to this action are that the submarine has not
+;been destroyed, the pressure shields have been activated, which is done so by
+;the previous action engineer_activates_pressure_shields_to_enter_vortex_in.
+;There needs to be a vortex in the current location, the vortex needs to go from
+;?uwrx to ?uwry - specified in the problem file. The drilling mini sub and
+;exploration sub need to be in the launch bay and not out on missions. The sub 
+;cannot be under attack, and it cant be about to attack. As a result of this
+;action the current location of the submarine will become the destination that
+;the vortex goes to ?uwry, the pressure shields will no longer be active, there
+;will no longer be an order to go into a vortex as one was just went through,
+;this will allow for another vortex to be travelled through if needed. And
+;for test purposes (traveledThroughVortexIn ?uwrx) will become true.
+)
+
+(:action submarine_enters_vortex_without_shields_activated_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (enterVortexOrdered)
+            (currentLocation ?uwrx)
+            (vortexInRegion ?uwrx)
+            (dmsubInLaunchBay)
+            (emsubInLaunchBay)
+            (not(submarineUnderAttack))
+            (not(missileSpecialistHasOrder))
+        )
+    :effect
+        (and
+            (not(enterVortexOrdered))
+            (submarineDestroyed)
+        )
+;Takes in one parameter current location to see whether there is a vortex in the
+;region. preconditions are the submarine hasn't been destroyed, an order has
+;been made to enter the vortex, there is a vortex in the current location, the
+;drilling mini sub and exploration mini sub are both in the launch bay - so they
+;are on the submarine, the submarine isn't under attack and isn't about to
+;perform an attack. As a result of this action the (enterVortexOrdered)
+;predicate is set to false and the submarine is destroyed, because the pressure
+;shields were not activated, no actions can be performed now.
+)
+
+(:action all_missions_complete_information_communicated_back_to_seaport
+    :parameters
+        ()
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation sea-port)
+            (vortexScannedIn region2)
+            (mineralSamplesStudiedFrom region1)
+            (underwaterBaseMissionAccomplishedIn region2)
+            (underwaterSensorNetDeployedIn region1)
+            (emsubInLaunchBay)
+            (dmsubInLaunchBay)
+        )
+    :effect
+        (and
+            (missionComplete)
+        )
+;No parameters, the preconditions of this action are that the submarine has not
+;been destroyed, the submarine is at the sea port, the vortex in region 1 has
+;been scanned, mineral samples from region 1 have been studied, the
+;underwater base mission in region 2 is complete, the underwater sensor nets
+;are deployed in region 1, and the exploration mini sub and drilling mini sub
+;are both aboard and in the launch bay. As a result of this action, the
+;predicate (missionComplete) becomes true.
+)
+
+(:action cpt_orders_submarine_to_attack_enemy_sub_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (enemySubInRegion ?uwrx)
+            (atSection defence-bay captain)
+            (atSection defence-bay missile-specialist)
+        )
+    :effect
+        (and
+            (missileSpecialistHasOrder)
+        )
+;This action takes in the current location as a parameter to check whether or
+;not there is an enemy submarine in the region. The preconditions to this
+;action are that the submarine has not been destroyed, there is an enemy sub
+;in the current location, the captain and missile-specialist are both in the
+;defence-bay section of the submarine. As a result of this action, the predicate
+;(missileSpecialistHasOrder) will become true, and the submarine will be ready
+;to attack the enemy.
+)
+
+(:action submarine_attacks_and_destroys_enemy_sub_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (enemySubInRegion ?uwrx)
+            (atSection defence-bay captain)
+            (atSection defence-bay missile-specialist)
+            (missileSpecialistHasOrder)
+            (experiencedMissileSpecialist)
+        )
+    :effect
+        (and
+            (enemyDefeated)
+            (not(enemySubInRegion ?uwrx))
+            (not(missileSpecialistHasOrder))
+        )
+;This action takes in the current location as a parameter to check whether or
+;not there is an enemy submarine in the region. The preconditions to this
+;action are that the submarine has not been destroyed, there is an enemy sub
+;in the current location, the captain and missile-specialist are both in the
+;defence-bay section of the submarine, the missile specialist has the order to 
+;attack the enemy submarine, and the missile specialist is experienced. As a
+;result of this action, the predicate (enemyDefeated) will become true to
+;indicate that the submarine has been victorious, there will no longer be a
+;submarine in the region as it has been taken out, so (enemySubInRegion ?uwrx)
+;will become false, and the missile specialist will no longer have an order to
+;attack anything.
+)
+
+(:action submarine_attacks_and_misses_enemy_sub_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (enemySubInRegion ?uwrx)
+            (atSection defence-bay captain)
+            (atSection defence-bay missile-specialist)
+            (missileSpecialistHasOrder)
+            (not(experiencedMissileSpecialist))
+        )
+    :effect
+        (and
+            (submarineUnderAttack)
+            (not(missileSpecialistHasOrder))
+        )
+;This action takes in the current location as a parameter to check whether or
+;not there is an enemy submarine in the region. The preconditions to this
+;action are that the submarine has not been destroyed, there is an enemy sub
+;in the current location, the captain and missile-specialist are both in the
+;defence-bay section of the submarine, the missile specialist has the order to 
+;attack the enemy submarine, and the missile specialist is not experienced. As a
+;result of this action, the predicate (submarineUnderAttack) will become true
+;to indicate that the submarine is now being attacked by the enemy after
+;missing them, and the missile specialist will no longer have an order to
+;attack.
+)
+
+(:action cpt_orders_submarine_to_flee_from_enemy_sub_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (enemySubInRegion ?uwrx)
+            (atSection bridge captain)
+            (atSection bridge navigator)
+            (submarineUnderAttack)
+        )
+    :effect
+        (and
+            (navigatorHasOrderToFlee)
+        )
+;This action takes in the current location as a parameter to check whether or
+;not there is an enemy submarine in the region. The preconditions to this
+;action are that the submarine has not been destroyed, there is an enemy sub
+;in the current location, the captain and navigator are both at the bridge
+;of the submarine, and the submarine is currently under attack. As a result
+;of this action, the predicate (navigatorHasOrderToFlee) will become true to
+;signify that the navigator has been ordered to flee the fight.
+)
+
+(:action submarine_flees_from_enemy_sub_and_goes_to_from
+    :parameters
+        (?uwry ?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (submarineUnderAttack)
+            (atSection bridge navigator)
+            (vortexInRegion ?uwrx)
+            (vortexGoesToFrom ?uwry ?uwrx)
+            (navigatorHasOrderToFlee)
+            (pressureShieldsActivated)
+        )
+    :effect
+        (and
+            (not(currentLocation ?uwrx))
+            (currentLocation ?uwry)
+            (not(submarineUnderAttack))
+            (not(navigatorHasOrderToFlee))
+            (avoidedEnemySubIn ?uwrx)
+        )
+;This action takes in two parameters the location that the vortex goes to ?uwry
+;and the submarines current location ?uwrx. As a precondition to this action
+;the submarine cannot be destroyed, the submarine must be under attack after
+;missing a missile shot against an enemy, the navigator must be at the bridge,
+;there must be a vortex in the current location, the vortex must go from the
+;current region ?uwrx to another ?uwry, the navigator must have been given the
+;order to flee and the pressure shields must be activated. As a result of this
+;action, the current location will become the location that the vortex goes to
+;?uwry, the submarine will no longer be under attack, the navigator will no
+;longer have an order to flee the enemy and the predicate 
+;(avoidedEnemySubIn ?uwrx) will become to true to signify that the submarine
+;fled successfully.
+)
+
+(:action submarine_attempts_to_flee_from_enemy_sub_in
+    :parameters
+        (?uwrx)
+    :precondition
+        (and
+            (not(submarineDestroyed))
+            (currentLocation ?uwrx)
+            (submarineUnderAttack)
+            (not(pressureShieldsActivated))
+        )
+    :effect
+        (and
+            (submarineDestroyed)
+        )
+;This action takes in one parameter the current location to see if there is
+;a vortex in the current location, the preconditions of this action are that
+;the submarine is not destroyed, the submarine is under attack, and the
+;pressure shields are not activated. As a result of this action, the sub
+;will be destroyed as it tries to outrun the enemy.
+)
+
+)

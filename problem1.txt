@@ -1,0 +1,77 @@
+(define (problem unnamed-3)
+    (:domain unnamed)
+
+    (:objects
+        bridge
+        launch-bay
+        science-lab
+        sick-bay
+        defence-bay
+        captain
+        navigator
+        sea-port
+        region1
+        region2
+        region3
+        engineer
+        engineer2
+        science-officer
+        security
+        missile-specialist
+    )
+    
+    (:init
+        (currentLocation sea-port)
+        (atSection sick-bay captain)
+        (atSection launch-bay navigator)
+        (atSection science-lab engineer)
+        (atSection science-lab engineer2)
+        (atSection bridge science-officer)
+        (atSection bridge security)
+        (atSection defence-bay missile-specialist)
+        (doorBetween bridge launch-bay)
+        (doorBetween launch-bay bridge)
+        (doorBetween launch-bay science-lab)
+        (doorBetween science-lab launch-bay)
+        (doorBetween science-lab sick-bay)
+        (doorBetween sick-bay science-lab)
+        (doorBetween sick-bay defence-bay)
+        (doorBetween defence-bay sick-bay)
+        (enemySubInRegion region2)
+        (ridgeInRegion region1)
+        (dmsubInLaunchBay)
+        (abyssalPlainInRegion region2)
+        (emsubInLaunchBay)
+        (onSubmarine captain)
+        (onSubmarine navigator)
+        (onSubmarine engineer)
+        (onSubmarine engineer2)
+        (onSubmarine science-officer)
+        (onSubmarine security)
+        (onSubmarine missile-specialist)
+        (location sea-port)
+        (location region1)
+        (location region2)
+        (location region3)
+        (underwaterBaseOnPlainInRegion region2)
+        (vortexInRegion region2)
+        (vortexGoesToFrom region1 region2)
+        (pressureShieldsToBeActivatedIn region2)
+        (experiencedMissileSpecialist)
+    )
+    
+    (:goal
+        (and
+            (not(injured captain))
+            (enemyDefeated)
+            (missionComplete)
+;This goal tests that the sick bay heals injured personnel as the captain
+;will be injured because (underwaterBaseSafeIn region2) is not initialised and
+;neither is (securityToAccomponyExpSubIn region2),
+;it tests my additional feature of attacking an enemy - in this case
+;successfully, and it also tests the entire implementation, returning to seaport
+;with mineral samples, vortex studies, sensor nets on plains, and underwater 
+;bases checked.
+        )
+    )
+)
